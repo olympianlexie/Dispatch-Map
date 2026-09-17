@@ -11,6 +11,13 @@ function normalizeName(raw) {
   // Strip common "Barangay"/"Brgy." prefixes.
   s = s.replace(/^\s*(brgy\.?|barangay)\s+/i, '');
 
+  // Strip a trailing "(POB.)"/"(Pob)"/"(Poblacion)" annotation — a common
+  // JO-system convention for "this barangay is the town's poblacion," not
+  // part of the actual barangay name. Nominatim doesn't recognize it, so
+  // leaving it in would send every poblacion barangay to geocoding failure
+  // (and the manual-fix queue) for no reason.
+  s = s.replace(/\s*\(\s*pob\.?(?:lacion)?\s*\)\s*$/i, '');
+
   // Standardize "Sto./Sta." abbreviations to their full form. The boundary
   // must come before the optional trailing dot — "Sto." is followed by a
   // space, and "." and " " are both non-word characters, so \b can't match

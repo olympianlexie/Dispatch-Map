@@ -16,6 +16,13 @@ test('normalizeName collapses whitespace and title-cases', () => {
   assert.equal(normalizeName('  poblacion   ii  '), 'Poblacion Ii');
 });
 
+test('normalizeName strips a trailing "(POB.)" poblacion annotation (real MAINLINE data pattern)', () => {
+  assert.equal(normalizeName('SAN JUAN (POB.)'), 'San Juan');
+  assert.equal(normalizeName('BURGOS (POB.)'), 'Burgos');
+  assert.equal(normalizeName('Poblacion (Pob)'), 'Poblacion');
+  assert.equal(normalizeName('Sample (Poblacion)'), 'Sample');
+});
+
 test('normalizeName handles empty/falsy input', () => {
   assert.equal(normalizeName(''), '');
   assert.equal(normalizeName(null), '');
