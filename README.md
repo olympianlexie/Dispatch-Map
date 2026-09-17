@@ -151,6 +151,22 @@ Cosmetic settings (vehicle colors, refresh interval, the "stale" cutoff, the
 moving-speed threshold) are in `public/js/config.js` and
 `netlify/functions/lib/cartrackConfig.js` respectively.
 
+## Automated tests
+
+```bash
+npm test
+```
+
+Runs Node's built-in test runner (no extra dependency) over `test/` —
+covers barangay/plate name normalization, sheet-row parsing, the Cartrack
+field-candidate-path lookup, and the client-side dispatch-ranking/haversine
+math (loaded into a sandboxed `window`/`document` since those files are
+written as browser globals, not modules). These aren't a substitute for
+testing against real sheet/Cartrack data, but they lock in the logic that's
+already been hand-verified so a future edit can't silently break it. Run
+this before pushing any change to `lib/normalize.js`, `lib/sheetRows.js`,
+`lib/pathGet.js`, `haversine.js`, or `dispatch.js`.
+
 ## Testing locally
 
 ```bash

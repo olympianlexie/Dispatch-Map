@@ -4,7 +4,8 @@
   "private": true,
   "description": "Live dispatch map for open installation JOs and Cartrack vehicle locations.",
   "scripts": {
-    "dev": "netlify dev"
+    "dev": "netlify dev",
+    "test": "node --test"
   },
   "devDependencies": {
     "netlify-cli": "^17.0.0"
