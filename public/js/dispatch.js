@@ -46,11 +46,12 @@ window.DispatchAssist = (function () {
   }
 
   function renderVehicleRanking(group) {
+    const esc = window.escapeHtml;
     const limit = window.DISPATCH_CONFIG.dispatchResultLimit;
     const ranked = rankVehiclesForBarangay(group).slice(0, limit);
 
     panel().innerHTML = `
-      <p class="approx-note">Nearest vehicles to <strong>${group.barangay}, ${group.municipality}</strong> — straight-line distance to the barangay centroid, not road travel time.</p>
+      <p class="approx-note">Nearest vehicles to <strong>${esc(group.barangay)}, ${esc(group.municipality)}</strong> — straight-line distance to the barangay centroid, not road travel time.</p>
       <ol class="rank-list">
         ${
           ranked.length === 0
@@ -59,7 +60,7 @@ window.DispatchAssist = (function () {
                 .map(
                   (r) => `
           <li class="rank-item ${r.vehicle.stale ? 'sla-unknown' : 'sla-withinSla'}">
-            <strong>${r.vehicle.registration || r.vehicle.vehicleId}</strong> ${r.vehicle.team ? `&middot; ${r.vehicle.team}` : ''}
+            <strong>${esc(r.vehicle.registration || r.vehicle.vehicleId)}</strong> ${r.vehicle.team ? `&middot; ${esc(r.vehicle.team)}` : ''}
             <span>${r.distanceKm.toFixed(1)} km &middot; ${r.vehicle.stale ? 'stale' : r.vehicle.moving ? 'moving' : 'idle'}</span>
           </li>`
                 )
@@ -69,11 +70,12 @@ window.DispatchAssist = (function () {
   }
 
   function renderBarangayRanking(vehicle) {
+    const esc = window.escapeHtml;
     const limit = window.DISPATCH_CONFIG.dispatchResultLimit;
     const ranked = rankBarangaysForVehicle(vehicle).slice(0, limit);
 
     panel().innerHTML = `
-      <p class="approx-note">Priority barangays for <strong>${vehicle.registration || vehicle.vehicleId}</strong> — distance is straight-line to each barangay's centroid; priority also weighs SLA urgency and open JO count (adjustable in public/js/config.js).</p>
+      <p class="approx-note">Priority barangays for <strong>${esc(vehicle.registration || vehicle.vehicleId)}</strong> — distance is straight-line to each barangay's centroid; priority also weighs SLA urgency and open JO count (adjustable in public/js/config.js).</p>
       <ol class="rank-list">
         ${
           ranked.length === 0
@@ -82,7 +84,7 @@ window.DispatchAssist = (function () {
                 .map(
                   (r) => `
           <li class="rank-item sla-${r.group.worstBucket}">
-            <strong>${r.group.barangay}, ${r.group.municipality}</strong>
+            <strong>${esc(r.group.barangay)}, ${esc(r.group.municipality)}</strong>
             <span>${r.distanceKm.toFixed(1)} km &middot; ${r.group.total} open &middot; ${r.group.breachedCount} breached</span>
           </li>`
                 )

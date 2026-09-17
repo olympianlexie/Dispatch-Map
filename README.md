@@ -112,6 +112,31 @@ something in this repo. Every `/api/*` function checks
 so the JO/subscriber data is never served without auth even if someone
 finds the function URL directly.
 
+### Untrusted data handling (important if you touch the frontend)
+
+MAINLINE (edited by sales agents), the VEHICLES tab, and Cartrack's API are
+all **not trusted input** — anyone who can put a value into a JO's Status,
+Assigned Team, or Subscriber Name field (or the VEHICLES tab's
+Team/Technicians column) can put arbitrary HTML/JS in there. Every place
+that builds a popup or panel from that data uses `window.escapeHtml()`
+(`public/js/escapeHtml.js`) before interpolating it into `innerHTML` — a
+stored-XSS review found five sinks that were missing this (barangay/
+subscriber popups, the side panel, the dispatch-ranking panel, and the
+admin unmatched-barangays page), all now fixed. **If you add a new popup,
+list item, or panel that renders sheet- or Cartrack-derived text, wrap it
+in `escapeHtml()`** — `test/clientDispatch.test.js` has a regression test
+for this pattern; extend it if you add a new render function.
+
+The Sheets write path (`lib/sheetsClient.js`'s `appendRow`/`updateRow`,
+used by `save-barangay-coord.js` and `geocode-barangays.js`) uses
+`valueInputOption=RAW`, not `USER_ENTERED` — the latter parses a string
+starting with `=`/`+`/`-`/`@` as a live spreadsheet formula (CWE-1236
+formula injection), which `save-barangay-coord.js` accepts as free-form
+POST body values. Keep using `RAW` for anything written by this app;
+`USER_ENTERED` should only ever be reintroduced for a field that
+specifically needs Sheets' human-typed-value parsing, and even then only
+after sanitizing a leading `=`/`+`/`-`/`@`.
+
 ### Adjusting SLA thresholds and colors
 
 - **What counts as breached/near-breach** (day thresholds): edit `sla` in

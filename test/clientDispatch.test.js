@@ -23,6 +23,7 @@ function loadClientScripts() {
     console,
   };
   vm.createContext(sandbox);
+  vm.runInContext(fs.readFileSync(path.join(__dirname, '../public/js/escapeHtml.js'), 'utf8'), sandbox);
   vm.runInContext(fs.readFileSync(path.join(__dirname, '../public/js/haversine.js'), 'utf8'), sandbox);
   vm.runInContext(fs.readFileSync(path.join(__dirname, '../public/js/dispatch.js'), 'utf8'), sandbox);
   return { window: sandbox.window, panel: fakeElement };
@@ -105,4 +106,25 @@ test('DispatchAssist ranks barangays so high urgency can outrank pure proximity'
     nearUrgentIndex < farCalmIndex,
     'a barangay that is both closer and more urgent must rank above one that is both farther and less urgent'
   );
+});
+
+// Regression test for a stored-XSS finding: barangay/municipality names and
+// vehicle registration/team come from a shared Google Sheet and the
+// Cartrack API — data other people can edit, not something this app
+// controls — so it must never reach innerHTML unescaped.
+test('DispatchAssist escapes attacker-controlled barangay/vehicle fields in rendered HTML', () => {
+  const { window, panel } = loadClientScripts();
+  const payload = '<img src=x onerror=alert(1)>';
+
+  window.DispatchAssist.setVehicles([{ vehicleId: 'V1', registration: payload, team: payload, lat: 14.2, lng: 121.3, stale: false, moving: false }]);
+  window.DispatchAssist.renderVehicleRanking({ barangay: payload, municipality: payload, lat: 14.2, lng: 121.3 });
+  assert.equal(panel.innerHTML.includes('<img src=x onerror=alert(1)>'), false, 'raw payload must not appear unescaped');
+  assert.ok(panel.innerHTML.includes('&lt;img'), 'payload should appear HTML-escaped instead');
+
+  window.DispatchAssist.setBarangayGroups([
+    { barangay: payload, municipality: payload, lat: 14.2, lng: 121.3, jos: [], total: 0, breachedCount: 0, oldestAge: -1, worstBucket: 'withinSla' },
+  ]);
+  window.DispatchAssist.renderBarangayRanking({ vehicleId: 'V1', registration: payload, lat: 14.2, lng: 121.3 });
+  assert.equal(panel.innerHTML.includes('<img src=x onerror=alert(1)>'), false, 'raw payload must not appear unescaped');
+  assert.ok(panel.innerHTML.includes('&lt;img'), 'payload should appear HTML-escaped instead');
 });

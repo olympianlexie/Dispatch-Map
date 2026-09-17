@@ -74,24 +74,25 @@
   }
 
   function renderPopup(group) {
+    const esc = window.escapeHtml;
     const rows = group.jos
       .slice()
       .sort((a, b) => (b.ageDays || 0) - (a.ageDays || 0))
       .map(
         (j) => `
         <tr>
-          <td>${j.joNumber}</td>
+          <td>${esc(j.joNumber)}</td>
           <td>${j.ageDays ?? '?'}</td>
-          <td>${j.status}</td>
-          <td>${j.assignedTeam || '<em>unassigned</em>'}</td>
-          <td>${j.subscriberName}<br><small>${j.contactNumber}</small></td>
+          <td>${esc(j.status)}</td>
+          <td>${j.assignedTeam ? esc(j.assignedTeam) : '<em>unassigned</em>'}</td>
+          <td>${esc(j.subscriberName)}<br><small>${esc(j.contactNumber)}</small></td>
         </tr>`
       )
       .join('');
 
     return `
       <div class="jo-popup">
-        <h3>${group.barangay}, ${group.municipality}</h3>
+        <h3>${esc(group.barangay)}, ${esc(group.municipality)}</h3>
         <p>${group.total} open installation JO(s) &middot; ${group.breachedCount} breached</p>
         <table>
           <thead><tr><th>JO #</th><th>Age (d)</th><th>Status</th><th>Team</th><th>Subscriber</th></tr></thead>
@@ -120,6 +121,7 @@
   }
 
   function renderSidePanel(groups) {
+    const esc = window.escapeHtml;
     const ranked = groups
       .slice()
       .sort((a, b) => b.breachedCount - a.breachedCount || b.oldestAge - a.oldestAge || b.total - a.total);
@@ -129,7 +131,7 @@
       .map(
         (g) => `
         <li class="rank-item sla-${g.worstBucket}">
-          <strong>${g.barangay}, ${g.municipality}</strong>
+          <strong>${esc(g.barangay)}, ${esc(g.municipality)}</strong>
           <span>${g.total} open &middot; ${g.breachedCount} breached &middot; oldest ${g.oldestAge}d</span>
         </li>`
       )
@@ -140,7 +142,7 @@
       unmatchedList.innerHTML = '<li>None &mdash; all barangays have coordinates.</li>';
     } else {
       unmatchedList.innerHTML = unmatchedBarangays
-        .map((u) => `<li>${u.barangay}, ${u.municipality} (${u.count} JO${u.count === 1 ? '' : 's'})</li>`)
+        .map((u) => `<li>${esc(u.barangay)}, ${esc(u.municipality)} (${u.count} JO${u.count === 1 ? '' : 's'})</li>`)
         .join('');
     }
   }
@@ -154,10 +156,11 @@
   }
 
   function fillSelect(id, values) {
+    const esc = window.escapeHtml;
     const select = document.getElementById(id);
     const current = select.value;
     select.innerHTML =
-      '<option value="all">All</option>' + values.map((v) => `<option value="${v}">${v}</option>`).join('');
+      '<option value="all">All</option>' + values.map((v) => `<option value="${esc(v)}">${esc(v)}</option>`).join('');
     if (values.includes(current)) select.value = current;
   }
 

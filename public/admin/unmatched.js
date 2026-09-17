@@ -8,6 +8,7 @@
   let pendingMarker = null;
 
   function renderList(unmatched) {
+    const esc = window.escapeHtml;
     const list = document.getElementById('unmatched-select-list');
     if (unmatched.length === 0) {
       list.innerHTML = '<li>Nothing to fix &mdash; all barangays have coordinates.</li>';
@@ -17,7 +18,7 @@
       .map(
         (u, i) => `
         <li class="rank-item" data-index="${i}">
-          <strong>${u.barangay}, ${u.municipality}</strong>
+          <strong>${esc(u.barangay)}, ${esc(u.municipality)}</strong>
           <span>${u.count} open JO(s)</span>
         </li>`
       )
@@ -28,6 +29,8 @@
         list.querySelectorAll('.rank-item').forEach((li) => li.classList.remove('selected'));
         el.classList.add('selected');
         selected = unmatched[Number(el.dataset.index)];
+        // textContent, not innerHTML — safe as-is even though selected.barangay/
+        // municipality are untrusted; no escaping needed for a text node.
         document.getElementById('selected-info').textContent = `Selected: ${selected.barangay}, ${selected.municipality}. Click the map to place its pin.`;
       });
     });
@@ -47,7 +50,7 @@
     pendingMarker = L.marker(e.latlng).addTo(map);
 
     const popupContent = document.createElement('div');
-    popupContent.innerHTML = `<p>${selected.barangay}, ${selected.municipality}</p>`;
+    popupContent.innerHTML = `<p>${window.escapeHtml(selected.barangay)}, ${window.escapeHtml(selected.municipality)}</p>`;
     const confirmBtn = document.createElement('button');
     confirmBtn.textContent = 'Save this pin';
     confirmBtn.addEventListener('click', async () => {

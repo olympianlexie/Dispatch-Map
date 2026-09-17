@@ -20,10 +20,12 @@ window.DispatchVehicles = (function () {
   }
 
   function renderPopup(vehicle) {
+    const esc = window.escapeHtml;
+    const label = vehicle.registration || vehicle.vehicleId || 'Unknown vehicle';
     return `
       <div class="vehicle-popup">
-        <h3>${vehicle.registration || vehicle.vehicleId || 'Unknown vehicle'}</h3>
-        <p>${vehicle.team || '<em>not mapped in VEHICLES tab</em>'}</p>
+        <h3>${esc(label)}</h3>
+        <p>${vehicle.team ? esc(vehicle.team) : '<em>not mapped in VEHICLES tab</em>'}</p>
         <p>${vehicle.ignitionOn ? 'Ignition on' : 'Ignition off'} &middot; ${vehicle.speedKph.toFixed(0)} km/h</p>
         <p>Updated ${relativeTime(vehicle.lastUpdate)}${vehicle.stale ? ' &mdash; stale' : ''}</p>
       </div>`;
