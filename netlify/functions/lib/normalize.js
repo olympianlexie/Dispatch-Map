@@ -36,4 +36,12 @@ function barangayKey(barangay, municipality) {
   return `${normalizeName(barangay)}|${normalizeName(municipality)}`.toLowerCase();
 }
 
-module.exports = { normalizeName, barangayKey };
+// Uppercase + strip everything but alphanumerics, so "ABC 1234", "abc-1234"
+// and "ABC1234" all match when joining Cartrack vehicles against the
+// VEHICLES sheet tab by plate.
+function normalizePlate(raw) {
+  if (!raw) return '';
+  return raw.toString().toUpperCase().replace(/[^A-Z0-9]/g, '');
+}
+
+module.exports = { normalizeName, barangayKey, normalizePlate };

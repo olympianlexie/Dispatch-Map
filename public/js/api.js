@@ -14,6 +14,10 @@ window.DispatchApi = (function () {
     return authedFetch('/api/sheet-jos');
   }
 
+  function fetchVehicles() {
+    return authedFetch('/api/cartrack-vehicles');
+  }
+
   function saveBarangayCoord(payload) {
     return authedFetch('/api/save-barangay-coord', {
       method: 'POST',
@@ -26,5 +30,5 @@ window.DispatchApi = (function () {
     return authedFetch('/api/geocode-barangays', { method: 'POST' });
   }
 
-  return { fetchJos, saveBarangayCoord, runGeocode };
+  return { fetchJos, fetchVehicles, saveBarangayCoord, runGeocode };
 })();

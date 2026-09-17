@@ -120,6 +120,19 @@ body {
   text-align: left;
 }
 
+.vehicle-popup {
+  font-size: 0.82rem;
+}
+
+.vehicle-popup h3 {
+  margin: 0 0 0.25rem;
+  font-size: 0.95rem;
+}
+
+.vehicle-popup p {
+  margin: 0.15rem 0;
+}
+
 .placeholder {
   max-width: 40rem;
   padding: 2rem;

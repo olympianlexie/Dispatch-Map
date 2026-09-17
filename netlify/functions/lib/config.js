@@ -52,6 +52,16 @@ module.exports = {
   // the click-to-pin admin page). Keep in header-row order.
   barangayCoordsColumns: ['Municipality', 'Barangay', 'Latitude', 'Longitude', 'Source', 'Verified', 'Confidence'],
 
+  // Logical field -> exact header text in the VEHICLES tab (create this tab
+  // yourself; it maps a Cartrack vehicle to the team that drives it).
+  // TODO: confirm against the real VEHICLES tab once created.
+  vehicleColumns: {
+    plate: 'Plate/Registration',
+    cartrackId: 'Cartrack Vehicle ID',
+    team: 'Team/Technicians',
+    cluster: 'Cluster',
+  },
+
   // The four Laguna clusters this MSP organizes municipalities into.
   // Used only for validating/labeling — the actual cluster per JO always
   // comes from the sheet's own Cluster column.

@@ -4,12 +4,14 @@ Live map for Olympian ICT dispatchers: open installation JOs by barangay,
 plus live Cartrack vehicle locations, so dispatchers can decide which team
 goes where.
 
-**Status: Phase 1 built, pending real-data verification.** The JO-by-
-barangay map, filters, side panel, and the barangay-coordinate tooling
-(geocoding + click-to-pin) are implemented, but built against **placeholder**
-sheet column names, status/JO-type values, and SLA thresholds — see
-"Configuring for your real sheet" below. Phase 2 (Cartrack vehicles) is
-blocked on live Cartrack credentials.
+**Status: Phase 1 and Phase 2 built, pending real-data verification.** The
+JO-by-barangay map, filters, side panel, and barangay-coordinate tooling
+(geocoding + click-to-pin) are implemented against **placeholder** sheet
+column names, status/JO-type values, and SLA thresholds — see "Configuring
+for your real sheet" below. The live vehicle layer is implemented against
+**best-guess Cartrack field names** (their docs site wasn't reachable while
+building this) — see "Configuring for your real Cartrack account" below.
+Neither phase has been run against live credentials yet.
 
 ## Stack
 
@@ -42,19 +44,19 @@ npm install
 npm run dev   # runs `netlify dev`, serving public/ + netlify/functions/ together
 ```
 
-## Current deliverable: Cartrack access smoke test
+## Cartrack access smoke test
 
-`netlify/functions/cartrack-test.js` calls the Cartrack vehicles list
-endpoint and returns the raw response, so we can confirm API access works
-and see the exact field names before building anything else.
+Run this first once you have real Cartrack credentials, before trusting the
+live vehicle layer:
 
 ```bash
 netlify dev
-curl http://localhost:8888/api/cartrack-test
+curl -H "Authorization: Bearer <identity-jwt>" http://localhost:8888/api/cartrack-test
 ```
 
-If this returns a vehicle list, credentials and network access are good and
-Phase 2 (live vehicle layer) can build on the confirmed response shape.
+`netlify/functions/cartrack-test.js` calls the Cartrack vehicles list
+endpoint and returns the raw response so you can see the exact field names
+Cartrack sends back for this account.
 
 ## Configuring for your real sheet
 
@@ -117,7 +119,39 @@ finds the function URL directly.
 - **Bubble colors / map center / refresh interval**: edit
   `public/js/config.js` — purely cosmetic, safe to change anytime.
 
-## Testing Phase 1 locally
+## Configuring for your real Cartrack account
+
+`developer.cartrack.com` wasn't reachable while this was built, so the
+exact JSON field names in a `/rest/vehicles/status` response are unconfirmed.
+`netlify/functions/lib/cartrackConfig.js`'s `fields` map lists a few
+candidate field-name guesses per logical value (e.g. latitude might be
+`location.lat`, `latitude`, or `lat`) and tries them in order — this makes
+the vehicle layer resilient to a couple of plausible shapes, but it isn't a
+substitute for checking the real response.
+
+Once you have credentials:
+
+1. Run the Cartrack smoke test (see above) and look at the raw vehicle list.
+2. Load the map and check the Network tab for `/api/cartrack-vehicles` — its
+   response includes a `rawSample` field (the first unprocessed vehicle
+   object from `/rest/vehicles/status`) specifically so you can compare it
+   against what got extracted into `vehicleId`/`lat`/`lng`/etc.
+3. If anything looks wrong (or matched the wrong field), trim that field's
+   candidate list in `cartrackConfig.js` down to the one confirmed real path.
+4. Remove the `rawSample` field from `cartrack-vehicles.js`'s response once
+   you've confirmed the mapping — it's only there to make that check easy.
+
+Also create the **VEHICLES** sheet tab (columns: `Plate/Registration`,
+`Cartrack Vehicle ID`, `Team/Technicians`, `Cluster` — see `vehicleColumns`
+in `lib/config.js`) so vehicles can be matched to a team. Matching tries the
+Cartrack vehicle ID first, then falls back to the plate/registration
+(punctuation- and case-insensitive).
+
+Cosmetic settings (vehicle colors, refresh interval, the "stale" cutoff, the
+moving-speed threshold) are in `public/js/config.js` and
+`netlify/functions/lib/cartrackConfig.js` respectively.
+
+## Testing locally
 
 ```bash
 npm install
@@ -127,17 +161,19 @@ npm run dev
 Then open `http://localhost:8888`. Without Identity configured locally
 you'll be redirected to the Netlify Identity login widget; without real
 `SHEET_ID`/service-account env vars, `/api/sheet-jos` will return a 502
-with the underlying Google error — that's expected until real credentials
-are added to `.env`.
+with the underlying Google error; without real Cartrack env vars,
+`/api/cartrack-vehicles` will similarly 502 and the vehicle layer will just
+log a console warning and show no vehicles — all expected until real
+credentials are added to `.env`.
 
 ## Roadmap
 
 1. **Phase 1 — Open installation JOs by barangay** ✅ built, needs
    verification against the real sheet (see "Configuring for your real
    sheet" above)
-2. **Phase 2 — Live Cartrack vehicles** — blocked on Cartrack credentials;
-   run `/api/cartrack-test` once they're available to confirm access and
-   see the real response shape before the vehicles layer is built
+2. **Phase 2 — Live Cartrack vehicles** ✅ built, needs verification against
+   a real Cartrack account (see "Configuring for your real Cartrack
+   account" above) and the VEHICLES tab needs creating
 3. **Phase 3 — Dispatch assistance** (nearest-vehicle / nearest-barangay
    ranking)
 4. **Phase 4 — Monitoring** (daily cluster summary, idle vehicles) — to be

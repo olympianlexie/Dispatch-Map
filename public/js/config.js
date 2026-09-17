@@ -11,6 +11,13 @@ window.DISPATCH_CONFIG = {
   },
 
   refreshIntervalMs: 60_000,
+  vehicleRefreshIntervalMs: 60_000,
+
+  vehicleColors: {
+    moving: '#1565c0',
+    idle: '#616161',
+    stale: '#bdbdbd',
+  },
 
   slaColors: {
     withinSla: '#2e7d32',

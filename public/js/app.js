@@ -6,6 +6,7 @@
 (function () {
   let map;
   let markersLayer;
+  let vehiclesLayer;
   let allJos = [];
   let unmatchedBarangays = [];
 
@@ -183,6 +184,17 @@
     });
   }
 
+  function wireLayerToggles() {
+    document.getElementById('toggle-jos').addEventListener('change', (e) => {
+      if (e.target.checked) map.addLayer(markersLayer);
+      else map.removeLayer(markersLayer);
+    });
+    document.getElementById('toggle-vehicles').addEventListener('change', (e) => {
+      if (e.target.checked) map.addLayer(vehiclesLayer);
+      else map.removeLayer(vehiclesLayer);
+    });
+  }
+
   async function loadData() {
     try {
       const data = await window.DispatchApi.fetchJos();
@@ -200,7 +212,9 @@
   function start() {
     map = window.DispatchMap.init('map');
     markersLayer = L.layerGroup().addTo(map);
+    vehiclesLayer = window.DispatchVehicles.start(map);
     wireFilterControls();
+    wireLayerToggles();
     loadData();
     setInterval(loadData, window.DISPATCH_CONFIG.refreshIntervalMs);
   }
