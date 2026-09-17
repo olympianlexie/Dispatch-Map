@@ -166,6 +166,35 @@ with the underlying Google error; without real Cartrack env vars,
 log a console warning and show no vehicles — all expected until real
 credentials are added to `.env`.
 
+## Dispatch assistance (Phase 3)
+
+Click a barangay bubble or a vehicle on the map to fill the **Dispatch
+suggestions** side-panel section:
+
+- **Click a barangay** → nearest vehicles, sorted by straight-line
+  (haversine) distance to that barangay's centroid. Purely distance-based —
+  no urgency weighting, since you're already looking at one specific
+  barangay's queue.
+- **Click a vehicle** → priority-ranked barangays, combining SLA urgency,
+  open JO count, and distance into one score:
+
+  ```
+  priority = breachedCount   * w.breachedCount
+           + nearBreachCount * w.nearBreachCount
+           + totalOpen       * w.totalOpen
+           + oldestAgeDays   * w.oldestAgeDays
+           + distanceKm      * w.distanceKm   (negative weight — farther is worse)
+  ```
+
+  Weights live in `public/js/config.js`'s `dispatchWeights` — there's no
+  "correct" value, tune them to match how your dispatchers actually
+  prioritize. `dispatchResultLimit` controls how many results show.
+
+Both rankings use straight-line distance only (no road routing/OSRM) — the
+UI says so directly next to every ranking, since a barangay's location is
+its centroid, not the actual job site, so treat the numbers as relative
+"closer/farther," not turn-by-turn ETAs.
+
 ## Roadmap
 
 1. **Phase 1 — Open installation JOs by barangay** ✅ built, needs
@@ -174,10 +203,9 @@ credentials are added to `.env`.
 2. **Phase 2 — Live Cartrack vehicles** ✅ built, needs verification against
    a real Cartrack account (see "Configuring for your real Cartrack
    account" above) and the VEHICLES tab needs creating
-3. **Phase 3 — Dispatch assistance** (nearest-vehicle / nearest-barangay
-   ranking)
+3. **Phase 3 — Dispatch assistance** ✅ built (see above) — depends on
+   Phase 1/2 data, so its accuracy inherits whatever is still unverified
+   there
 4. **Phase 4 — Monitoring** (daily cluster summary, idle vehicles) — to be
-   scoped after Phase 1–3 are live
-
-Dispatch-scoring weights (Phase 3) will be documented here once that phase
-lands.
+   scoped with the project owner before building (per the original brief,
+   this phase needs discussion first, unlike 1–3)

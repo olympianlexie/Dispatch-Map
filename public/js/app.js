@@ -54,10 +54,12 @@
     return Array.from(groups.values()).map((g) => {
       const buckets = g.jos.map((j) => j.slaBucket);
       const breachedCount = buckets.filter((b) => b === 'breached').length;
+      const nearBreachCount = buckets.filter((b) => b === 'nearBreach').length;
       const oldestAge = Math.max(...g.jos.map((j) => (j.ageDays === null ? -1 : j.ageDays)));
       return Object.assign(g, {
         total: g.jos.length,
         breachedCount,
+        nearBreachCount,
         oldestAge,
         worstBucket: worstBucket(buckets),
       });
@@ -112,6 +114,7 @@
         weight: 2,
       });
       marker.bindPopup(renderPopup(g));
+      marker.on('click', () => window.DispatchAssist.renderVehicleRanking(g));
       marker.addTo(markersLayer);
     });
   }
@@ -161,6 +164,7 @@
   function applyFiltersAndRender() {
     const filtered = allJos.filter(passesFilters);
     const groups = groupByBarangay(filtered);
+    window.DispatchAssist.setBarangayGroups(groups);
     renderMap(groups);
     renderSidePanel(groups);
   }

@@ -34,4 +34,23 @@ window.DISPATCH_CONFIG = {
     min: 8,
     max: 28,
   },
+
+  // Phase 3: weights for ranking barangays when a vehicle is selected.
+  // priority = breachedCount*w.breachedCount + nearBreachCount*w.nearBreachCount
+  //          + totalOpen*w.totalOpen + oldestAgeDays*w.oldestAgeDays
+  //          + distanceKm*w.distanceKm
+  // Higher priority = suggested first. distanceKm's weight is negative so
+  // farther barangays score lower; everything else is additive urgency.
+  // Tune freely — there's no "correct" value, only what matches how your
+  // dispatchers actually prioritize.
+  dispatchWeights: {
+    breachedCount: 10,
+    nearBreachCount: 4,
+    totalOpen: 1,
+    oldestAgeDays: 0.5,
+    distanceKm: -2,
+  },
+
+  // How many ranked results to show per dispatch suggestion.
+  dispatchResultLimit: 8,
 };

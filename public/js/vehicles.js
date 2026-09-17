@@ -30,6 +30,7 @@ window.DispatchVehicles = (function () {
   }
 
   function render(vehicles) {
+    window.DispatchAssist.setVehicles(vehicles);
     vehiclesLayer.clearLayers();
     vehicles
       .filter((v) => v.lat !== null && v.lng !== null)
@@ -42,6 +43,7 @@ window.DispatchVehicles = (function () {
           fillOpacity: v.stale ? 0.4 : 0.9,
         });
         marker.bindPopup(renderPopup(v));
+        marker.on('click', () => window.DispatchAssist.renderBarangayRanking(v));
         marker.addTo(vehiclesLayer);
       });
   }
