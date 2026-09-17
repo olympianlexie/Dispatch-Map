@@ -36,8 +36,8 @@
     });
   }
 
-  async function loadUnmatched() {
-    const data = await window.DispatchApi.fetchJos();
+  async function loadUnmatched(forceFresh) {
+    const data = await window.DispatchApi.fetchJos(forceFresh);
     renderList(data.unmatchedBarangays);
   }
 
@@ -65,7 +65,7 @@
         selected = null;
         map.removeLayer(pendingMarker);
         pendingMarker = null;
-        loadUnmatched();
+        loadUnmatched(true);
       } catch (err) {
         alert(`Failed to save: ${err.message}`);
       }
@@ -87,7 +87,7 @@
         const result = await window.DispatchApi.runGeocode();
         alert(`Geocoded ${result.geocoded.length} of ${result.queued} new barangays. ${result.failed.length} failed — see console.`);
         console.log('Geocode failures:', result.failed);
-        loadUnmatched();
+        loadUnmatched(true);
       } catch (err) {
         alert(`Geocoding pass failed: ${err.message}`);
       } finally {

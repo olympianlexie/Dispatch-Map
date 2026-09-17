@@ -138,8 +138,16 @@ exports.handler = async (event, context) => {
     return { statusCode: 401, body: JSON.stringify({ error: 'Login required.' }) };
   }
 
+  // A serverless function's in-memory cache can't be reliably invalidated
+  // from another function (save-barangay-coord.js / geocode-barangays.js
+  // may run on a different warm instance entirely), so instead offer an
+  // explicit bypass: callers that just wrote new data (the admin page,
+  // right after saving a pin or running a geocode pass) pass ?fresh=1 to
+  // guarantee they see it immediately instead of waiting out the TTL.
+  const forceFresh = event.queryStringParameters && event.queryStringParameters.fresh;
+
   try {
-    if (!cache.data || cache.expiresAt < Date.now()) {
+    if (forceFresh || !cache.data || cache.expiresAt < Date.now()) {
       cache = { data: await buildJos(), expiresAt: Date.now() + CACHE_TTL_MS };
     }
     return {

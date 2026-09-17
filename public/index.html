@@ -7,7 +7,7 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <link rel="stylesheet" href="/css/style.css" />
   <script defer src="https://identity.netlify.com/v1/netlify-identity-widget.js"></script>
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script defer src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 </head>
 <body>
   <header class="topbar">
@@ -49,14 +49,26 @@
     </aside>
   </main>
 
-  <script src="/js/escapeHtml.js"></script>
-  <script src="/js/config.js"></script>
-  <script src="/js/auth.js"></script>
-  <script src="/js/api.js"></script>
-  <script src="/js/map.js"></script>
-  <script src="/js/haversine.js"></script>
-  <script src="/js/dispatch.js"></script>
-  <script src="/js/vehicles.js"></script>
-  <script src="/js/app.js"></script>
+  <!--
+    All scripts on this page (including Identity/Leaflet above) use `defer`,
+    not just for perf — it's load-bearing. Deferred scripts run in document
+    order after parsing finishes, right before DOMContentLoaded. Without
+    `defer` here, these would run synchronously as the parser reaches them
+    (i.e. before parsing finishes), which is BEFORE the deferred Identity
+    widget script above runs — so window.netlifyIdentity would still be
+    undefined when app.js calls window.DispatchAuth.init(start), and the
+    app would silently fail to start on every load. Keep every script here
+    deferred, in this relative order (Identity, Leaflet, then app scripts
+    in their dependency order).
+  -->
+  <script defer src="/js/escapeHtml.js"></script>
+  <script defer src="/js/config.js"></script>
+  <script defer src="/js/auth.js"></script>
+  <script defer src="/js/api.js"></script>
+  <script defer src="/js/map.js"></script>
+  <script defer src="/js/haversine.js"></script>
+  <script defer src="/js/dispatch.js"></script>
+  <script defer src="/js/vehicles.js"></script>
+  <script defer src="/js/app.js"></script>
 </body>
 </html>

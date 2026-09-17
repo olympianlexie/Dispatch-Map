@@ -29,10 +29,7 @@ function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-async function geocodeOne(barangay, municipality) {
-  const userAgent = process.env.NOMINATIM_USER_AGENT;
-  if (!userAgent) throw new Error('Missing NOMINATIM_USER_AGENT env var (required by Nominatim usage policy).');
-
+async function geocodeOne(barangay, municipality, userAgent) {
   const query = `Barangay ${barangay}, ${municipality}, Laguna, Philippines`;
   const url = `${NOMINATIM_URL}?format=json&limit=1&q=${encodeURIComponent(query)}`;
 
@@ -58,6 +55,18 @@ exports.handler = async (event, context) => {
   }
   if (event.httpMethod !== 'POST') {
     return { statusCode: 405, body: JSON.stringify({ error: 'Use POST.' }) };
+  }
+
+  // Checked once up front, not inside the per-barangay loop — otherwise a
+  // missing env var still burns a full REQUEST_DELAY_MS sleep per queued
+  // barangay before failing, which can push the whole request past
+  // Netlify's function timeout instead of returning this error instantly.
+  const userAgent = process.env.NOMINATIM_USER_AGENT;
+  if (!userAgent) {
+    return {
+      statusCode: 500,
+      body: JSON.stringify({ error: 'Missing NOMINATIM_USER_AGENT env var (required by Nominatim usage policy).' }),
+    };
   }
 
   try {
@@ -89,7 +98,7 @@ exports.handler = async (event, context) => {
     // Sequential on purpose — Nominatim's usage policy caps us at 1 req/sec.
     for (const { barangay, municipality } of toGeocode.values()) {
       try {
-        const geocoded = await geocodeOne(barangay, municipality);
+        const geocoded = await geocodeOne(barangay, municipality, userAgent);
         if (geocoded) {
           await appendRow(config.sheet.barangayCoordsTab, [
             municipality,

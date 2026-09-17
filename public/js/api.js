@@ -10,8 +10,11 @@ window.DispatchApi = (function () {
     return res.json();
   }
 
-  function fetchJos() {
-    return authedFetch('/api/sheet-jos');
+  // Pass forceFresh=true right after a write (e.g. saving a barangay pin)
+  // so the caller doesn't see the pre-write data for up to the server's
+  // cache TTL — see the matching comment in netlify/functions/sheet-jos.js.
+  function fetchJos(forceFresh) {
+    return authedFetch(forceFresh ? '/api/sheet-jos?fresh=1' : '/api/sheet-jos');
   }
 
   function fetchVehicles() {
