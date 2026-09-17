@@ -1,0 +1,15 @@
+[build]
+  publish = "public"
+  functions = "netlify/functions"
+  command = "echo 'no build step'"
+
+[dev]
+  publish = "public"
+  functions = "netlify/functions"
+
+# Redirect Google Sheets / Cartrack proxy calls through a single /api/* path
+# so the browser never talks to either service directly.
+[[redirects]]
+  from = "/api/*"
+  to = "/.netlify/functions/:splat"
+  status = 200

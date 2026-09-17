@@ -1,0 +1,16 @@
+{
+  "name": "dispatch-map",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Live dispatch map for open installation JOs and Cartrack vehicle locations.",
+  "scripts": {
+    "dev": "netlify dev"
+  },
+  "devDependencies": {
+    "netlify-cli": "^17.0.0"
+  },
+  "dependencies": {
+    "googleapis": "^140.0.0",
+    "node-fetch": "^2.7.0"
+  }
+}
