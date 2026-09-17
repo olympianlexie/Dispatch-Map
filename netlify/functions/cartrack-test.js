@@ -14,27 +14,28 @@
 // .env file that is gitignored).
 
 const fetch = require('node-fetch');
+const { buildAuthHeader, baseUrl } = require('./lib/cartrackAuth');
+const cartrackConfig = require('./lib/cartrackConfig');
+const { requireUser } = require('./lib/auth');
 
-exports.handler = async () => {
-  const { CARTRACK_BASE_URL, CARTRACK_USERNAME, CARTRACK_PASSWORD } = process.env;
-
-  if (!CARTRACK_BASE_URL || !CARTRACK_USERNAME || !CARTRACK_PASSWORD) {
-    return {
-      statusCode: 500,
-      body: JSON.stringify({
-        error: 'Missing CARTRACK_BASE_URL, CARTRACK_USERNAME, or CARTRACK_PASSWORD env var.',
-      }),
-    };
+exports.handler = async (event, context) => {
+  const user = requireUser(context);
+  if (!user) {
+    return { statusCode: 401, body: JSON.stringify({ error: 'Login required.' }) };
   }
 
-  const url = `${CARTRACK_BASE_URL.replace(/\/$/, '')}/rest/vehicles`;
-  const authHeader = 'Basic ' + Buffer.from(`${CARTRACK_USERNAME}:${CARTRACK_PASSWORD}`).toString('base64');
+  let url;
+  try {
+    url = `${baseUrl()}${cartrackConfig.vehiclesEndpointPath}`;
+  } catch (err) {
+    return { statusCode: 500, body: JSON.stringify({ error: err.message }) };
+  }
 
   try {
     const response = await fetch(url, {
       headers: {
         Accept: 'application/json',
-        Authorization: authHeader,
+        Authorization: buildAuthHeader(),
       },
     });
 

@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Fix unmatched barangays &mdash; Dispatch Map</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <link rel="stylesheet" href="/css/style.css" />
+  <link rel="stylesheet" href="/admin/admin.css" />
+  <script defer src="https://identity.netlify.com/v1/netlify-identity-widget.js"></script>
+  <script defer src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+</head>
+<body>
+  <header class="topbar">
+    <h1>Fix unmatched barangays</h1>
+    <a href="/index.html" style="color: white;">&larr; Back to map</a>
+    <button id="run-geocode" class="status-text">Run geocoding pass</button>
+  </header>
+
+  <main class="admin-layout">
+    <aside class="side-panel">
+      <h2>Barangays without coordinates</h2>
+      <p style="font-size: 0.8rem;">Pick one, then click its location on the map to save a pin.</p>
+      <ul id="unmatched-select-list" class="rank-list"></ul>
+      <p id="selected-info" style="font-size: 0.8rem;"></p>
+    </aside>
+    <div id="admin-map"></div>
+  </main>
+
+  <!-- See public/index.html for why every script here must stay `defer`. -->
+  <script defer src="/js/escapeHtml.js"></script>
+  <script defer src="/js/config.js"></script>
+  <script defer src="/js/auth.js"></script>
+  <script defer src="/js/api.js"></script>
+  <script defer src="/js/map.js"></script>
+  <script defer src="/admin/unmatched.js"></script>
+</body>
+</html>

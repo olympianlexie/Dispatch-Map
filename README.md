@@ -4,9 +4,45 @@ Live map for Olympian ICT dispatchers: open installation JOs by barangay,
 plus live Cartrack vehicle locations, so dispatchers can decide which team
 goes where.
 
-**Status: scaffolding.** Phase 1 (JOs by barangay) hasn't started yet — it's
-waiting on sheet column confirmation and status/threshold values from the
-project owner. This README will grow with each phase.
+**Status: Phase 1 column mapping confirmed against the real sheet; Phase 2
+still needs a live Cartrack test.** `netlify/functions/lib/config.js`'s
+column names, status values, and open/closed logic are now confirmed
+against the real MAINLINE tab (see "Configuring for your real sheet"
+below) — only the SLA day thresholds are still a placeholder, since that's
+a business policy number only the project owner can set. The live vehicle
+layer is still implemented against **best-guess Cartrack field names**
+(their docs site wasn't reachable while building this, and this sandboxed
+dev environment's network policy blocks every Cartrack hostname tried, so
+the credentials provided couldn't be tested here) — see "Configuring for
+your real Cartrack account" below. Run the Cartrack smoke test yourself
+(from a normal `netlify dev` or after deploying) before trusting Phase 2.
+
+**Want to see it working right now, with no setup at all?** See "Demo mode"
+below — a version of the exact same app running on made-up data, no sheet,
+no Cartrack, no login required.
+
+## Demo mode (no credentials needed)
+
+`public/demo/index.html` is the real map, side panel, filters, and dispatch
+suggestions — same `public/js/app.js`, `vehicles.js`, `dispatch.js`, unchanged
+— just fed fake data (`public/demo/sample-data.js`) instead of the real
+Sheets/Cartrack APIs, and with the Netlify Identity login skipped
+(`public/demo/mock-auth.js`/`mock-api.js` stand in for the real
+`auth.js`/`api.js`, same interface). Fake barangays are real Laguna town
+names with approximate coordinates; subscriber names and phone numbers are
+obviously made up (`555` prefix). A few vehicles drift slightly on each
+refresh to show the "moving" state, and one is deliberately stale (grayed
+out) to show that behavior too.
+
+```bash
+npm install
+npm run dev
+```
+
+Then open `http://localhost:8888/demo/index.html` — no `.env`, no service
+account, no Cartrack credentials, no login. This is purely for previewing
+the UI/UX; it doesn't save barangay pins or run geocoding (those show a
+"demo mode" message instead of doing anything).
 
 ## Stack
 
@@ -39,31 +75,248 @@ npm install
 npm run dev   # runs `netlify dev`, serving public/ + netlify/functions/ together
 ```
 
-## Current deliverable: Cartrack access smoke test
+## Cartrack access smoke test
 
-`netlify/functions/cartrack-test.js` calls the Cartrack vehicles list
-endpoint and returns the raw response, so we can confirm API access works
-and see the exact field names before building anything else.
+Run this first once you have real Cartrack credentials, before trusting the
+live vehicle layer:
 
 ```bash
 netlify dev
-curl http://localhost:8888/api/cartrack-test
+curl -H "Authorization: Bearer <identity-jwt>" http://localhost:8888/api/cartrack-test
 ```
 
-If this returns a vehicle list, credentials and network access are good and
-Phase 2 (live vehicle layer) can build on the confirmed response shape.
+`netlify/functions/cartrack-test.js` calls the Cartrack vehicles list
+endpoint and returns the raw response so you can see the exact field names
+Cartrack sends back for this account.
+
+## Configuring for your real sheet
+
+Everything that depends on facts about the actual MAINLINE tab — exact
+column headers, which statuses mean "open", and the SLA bucket thresholds —
+lives in **one file**: `netlify/functions/lib/config.js`.
+
+**Confirmed against the real "SLI New Database" sheet's MAINLINE tab:**
+
+- Column names (`JO NUMBER`, `DATE CREATED`, `AGEING DAYS`, `BRGY`,
+  `MUNICIPALITY`, `CLUSTER`, `Assigned Crew in JOWEB`, `SUBSCRIBER NAME`,
+  `CONTACT DETAILS`, `STATUS ON JOWEB`, `STATUS CATEGORY`, `JO TYPE`).
+- `AGEING DAYS` is a column the sheet already computes — the app reads it
+  directly instead of re-deriving age from `DATE CREATED`, only falling
+  back to date math if that column is ever blank.
+- "Open" is a **blacklist** of `STATUS ON JOWEB` values that mean done
+  (`CLOSE`, `CANCELLED`) rather than a whitelist of open ones — confirmed
+  real values are `ON GOING`, `FOR RELEASING`, `CLOSE`, `CANCELLED`. A
+  future status value nobody's seen yet still shows up as open by default
+  (a dispatcher can judge it) instead of silently vanishing because a
+  whitelist didn't include it.
+- `JO TYPE` turned out to be the **customer/product segment** (`CONSUMER`,
+  `SME (SMALL MEDIUM ENTERPRISE)`, `BIDA`, `S2S`, `APPLICATION FOR
+  MAINLINE/EXTENSION IPTV`, `WIFI 6 TECH ASSISTANCE`), not an
+  installation-vs-repair flag — MAINLINE appears to track installation-type
+  work exclusively, so every row is in scope by default.
+  **One open question:** does `WIFI 6 TECH ASSISTANCE` belong on this map,
+  or is it post-install support that should be excluded? Add its exact
+  string to `openInstallation.excludeJoTypes` in `config.js` if the latter.
+- `"Assigned Crew in JOWEB"` uses a bare `-` to mean "not yet assigned" —
+  the app normalizes that to an empty string so the Assigned/Unassigned
+  filter works correctly.
+- Real `CLUSTER` values are `CLUSTER 1`–`CLUSTER 4`.
+
+**Still a placeholder — needs your input:** the SLA `nearBreachDays`/
+`breachDays` thresholds in `config.js`'s `sla` block (currently 3/5 days).
+That's Converge's actual installation SLA policy, which isn't something
+derivable from sample data.
+
+### Required sheet tabs
+
+- **MAINLINE** (existing) — columns confirmed above, matching
+  `netlify/functions/lib/config.js`'s `columns` mapping.
+- **BARANGAY_COORDS** (new tab you create) — columns in this exact order:
+  `Municipality, Barangay, Latitude, Longitude, Source, Verified, Confidence`.
+  `Source` is `geocoded` or `manual`; `Verified` is `yes`/`no`; `Confidence`
+  is `ok` or `low-check-municipality` (set automatically when a geocode
+  result's address doesn't mention the expected municipality — Laguna has
+  repeated barangay names across towns).
+- **VEHICLES** (new tab, for Phase 2) — not read yet; will hold
+  plate/registration, Cartrack vehicle ID, team/technicians, cluster.
+
+Share the sheet with your Google service account's email as **Editor**
+(not just Viewer) — the app writes new/corrected rows to BARANGAY_COORDS.
+
+### Maintaining BARANGAY_COORDS
+
+- Open **Fix unmatched barangays** (linked from the main map's side panel,
+  or `/admin/unmatched-barangays.html` directly) to see every barangay that
+  appeared in an open installation JO but has no coordinates yet.
+- Click **"Run geocoding pass"** to auto-geocode all of them via Nominatim
+  (rate-limited to ~1/second, so this can take a while with many barangays).
+  It never re-geocodes a barangay already in the tab, even a low-confidence
+  one — those are fixed manually so a re-run can't silently overwrite a
+  correction.
+- For anything that fails to geocode, or that geocoded with
+  `low-check-municipality`, pick it from the list and click its real
+  location on the map to save a corrected pin.
+- New barangays that show up in MAINLINE later are picked up automatically
+  the next time someone opens the admin page (it always re-diffs MAINLINE
+  against BARANGAY_COORDS) — there's no separate "new barangay" queue to
+  maintain.
+
+### Authentication
+
+The map requires login via **Netlify Identity**. Enable it in the Netlify
+dashboard (Site settings → Identity → Enable Identity) and invite
+dispatcher/supervisor email addresses — this is a dashboard step, not
+something in this repo. Every `/api/*` function checks
+`context.clientContext.user` and returns 401 if there's no logged-in user,
+so the JO/subscriber data is never served without auth even if someone
+finds the function URL directly.
+
+### Untrusted data handling (important if you touch the frontend)
+
+MAINLINE (edited by sales agents), the VEHICLES tab, and Cartrack's API are
+all **not trusted input** — anyone who can put a value into a JO's Status,
+Assigned Team, or Subscriber Name field (or the VEHICLES tab's
+Team/Technicians column) can put arbitrary HTML/JS in there. Every place
+that builds a popup or panel from that data uses `window.escapeHtml()`
+(`public/js/escapeHtml.js`) before interpolating it into `innerHTML` — a
+stored-XSS review found five sinks that were missing this (barangay/
+subscriber popups, the side panel, the dispatch-ranking panel, and the
+admin unmatched-barangays page), all now fixed. **If you add a new popup,
+list item, or panel that renders sheet- or Cartrack-derived text, wrap it
+in `escapeHtml()`** — `test/clientDispatch.test.js` has a regression test
+for this pattern; extend it if you add a new render function.
+
+The Sheets write path (`lib/sheetsClient.js`'s `appendRow`/`updateRow`,
+used by `save-barangay-coord.js` and `geocode-barangays.js`) uses
+`valueInputOption=RAW`, not `USER_ENTERED` — the latter parses a string
+starting with `=`/`+`/`-`/`@` as a live spreadsheet formula (CWE-1236
+formula injection), which `save-barangay-coord.js` accepts as free-form
+POST body values. Keep using `RAW` for anything written by this app;
+`USER_ENTERED` should only ever be reintroduced for a field that
+specifically needs Sheets' human-typed-value parsing, and even then only
+after sanitizing a leading `=`/`+`/`-`/`@`.
+
+### Adjusting SLA thresholds and colors
+
+- **What counts as breached/near-breach** (day thresholds): edit `sla` in
+  `netlify/functions/lib/config.js`.
+- **Bubble colors / map center / refresh interval**: edit
+  `public/js/config.js` — purely cosmetic, safe to change anytime.
+
+## Configuring for your real Cartrack account
+
+`developer.cartrack.com` wasn't reachable while this was built, so the
+exact JSON field names in a `/rest/vehicles/status` response are unconfirmed.
+`netlify/functions/lib/cartrackConfig.js`'s `fields` map lists a few
+candidate field-name guesses per logical value (e.g. latitude might be
+`location.lat`, `latitude`, or `lat`) and tries them in order — this makes
+the vehicle layer resilient to a couple of plausible shapes, but it isn't a
+substitute for checking the real response.
+
+Once you have credentials:
+
+1. Run the Cartrack smoke test (see above) and look at the raw vehicle list.
+   Note: this couldn't be tested from the sandboxed environment this app
+   was built in — its network policy blocked every Cartrack hostname tried
+   (`developer.cartrack.com`, `fleetapi-na.cartrack.com`,
+   `fleetweb-ph.cartrack.com`, `fleetapi-ph.cartrack.com`) with a 403 at
+   the egress proxy, not a Cartrack-side auth failure. Run this smoke test
+   from `netlify dev` on your own machine or after deploying, where that
+   restriction doesn't apply. Confirm the exact `CARTRACK_BASE_URL` for
+   your account/region too — the two `fleet*-ph`/`fleet*-na` guesses above
+   were never actually reachable, so neither is confirmed.
+2. Load the map and check the Network tab for `/api/cartrack-vehicles` — its
+   response includes a `rawSample` field (the first unprocessed vehicle
+   object from `/rest/vehicles/status`) specifically so you can compare it
+   against what got extracted into `vehicleId`/`lat`/`lng`/etc.
+3. If anything looks wrong (or matched the wrong field), trim that field's
+   candidate list in `cartrackConfig.js` down to the one confirmed real path.
+4. Remove the `rawSample` field from `cartrack-vehicles.js`'s response once
+   you've confirmed the mapping — it's only there to make that check easy.
+
+Also create the **VEHICLES** sheet tab (columns: `Plate/Registration`,
+`Cartrack Vehicle ID`, `Team/Technicians`, `Cluster` — see `vehicleColumns`
+in `lib/config.js`) so vehicles can be matched to a team. Matching tries the
+Cartrack vehicle ID first, then falls back to the plate/registration
+(punctuation- and case-insensitive).
+
+Cosmetic settings (vehicle colors, refresh interval, the "stale" cutoff, the
+moving-speed threshold) are in `public/js/config.js` and
+`netlify/functions/lib/cartrackConfig.js` respectively.
+
+## Automated tests
+
+```bash
+npm test
+```
+
+Runs Node's built-in test runner (no extra dependency) over `test/` —
+covers barangay/plate name normalization, sheet-row parsing, the Cartrack
+field-candidate-path lookup, and the client-side dispatch-ranking/haversine
+math (loaded into a sandboxed `window`/`document` since those files are
+written as browser globals, not modules). These aren't a substitute for
+testing against real sheet/Cartrack data, but they lock in the logic that's
+already been hand-verified so a future edit can't silently break it. Run
+this before pushing any change to `lib/normalize.js`, `lib/sheetRows.js`,
+`lib/pathGet.js`, `haversine.js`, or `dispatch.js`.
+
+## Testing locally
+
+```bash
+npm install
+npm run dev
+```
+
+Then open `http://localhost:8888`. Without Identity configured locally
+you'll be redirected to the Netlify Identity login widget; without real
+`SHEET_ID`/service-account env vars, `/api/sheet-jos` will return a 502
+with the underlying Google error; without real Cartrack env vars,
+`/api/cartrack-vehicles` will similarly 502 and the vehicle layer will just
+log a console warning and show no vehicles — all expected until real
+credentials are added to `.env`.
+
+## Dispatch assistance (Phase 3)
+
+Click a barangay bubble or a vehicle on the map to fill the **Dispatch
+suggestions** side-panel section:
+
+- **Click a barangay** → nearest vehicles, sorted by straight-line
+  (haversine) distance to that barangay's centroid. Purely distance-based —
+  no urgency weighting, since you're already looking at one specific
+  barangay's queue.
+- **Click a vehicle** → priority-ranked barangays, combining SLA urgency,
+  open JO count, and distance into one score:
+
+  ```
+  priority = breachedCount   * w.breachedCount
+           + nearBreachCount * w.nearBreachCount
+           + totalOpen       * w.totalOpen
+           + oldestAgeDays   * w.oldestAgeDays
+           + distanceKm      * w.distanceKm   (negative weight — farther is worse)
+  ```
+
+  Weights live in `public/js/config.js`'s `dispatchWeights` — there's no
+  "correct" value, tune them to match how your dispatchers actually
+  prioritize. `dispatchResultLimit` controls how many results show.
+
+Both rankings use straight-line distance only (no road routing/OSRM) — the
+UI says so directly next to every ranking, since a barangay's location is
+its centroid, not the actual job site, so treat the numbers as relative
+"closer/farther," not turn-by-turn ETAs.
 
 ## Roadmap
 
-1. **Phase 1 — Open installation JOs by barangay** (pending: sheet column
-   confirmation, open-installation status/type values, SLA bucket
-   thresholds)
-2. **Phase 2 — Live Cartrack vehicles**
-3. **Phase 3 — Dispatch assistance** (nearest-vehicle / nearest-barangay
-   ranking)
+1. **Phase 1 — Open installation JOs by barangay** ✅ built, column mapping
+   confirmed against the real sheet — only the SLA day thresholds and the
+   `WIFI 6 TECH ASSISTANCE` scoping question remain (see "Configuring for
+   your real sheet" above)
+2. **Phase 2 — Live Cartrack vehicles** ✅ built, still needs a live
+   Cartrack smoke test (blocked in this sandboxed dev environment — see
+   "Configuring for your real Cartrack account" above) and the VEHICLES tab
+   needs creating
+3. **Phase 3 — Dispatch assistance** ✅ built (see above) — depends on
+   Phase 1/2 data, so its accuracy inherits whatever is still unverified
+   there
 4. **Phase 4 — Monitoring** (daily cluster summary, idle vehicles) — to be
-   scoped after Phase 1–3 are live
-
-Maintaining the `VEHICLES` and `BARANGAY_COORDS` sheet tabs, and adjusting
-SLA thresholds / dispatch-scoring weights, will be documented here once
-those phases land.
+   scoped with the project owner before building (per the original brief,
+   this phase needs discussion first, unlike 1–3)

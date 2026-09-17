@@ -3,15 +3,19 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Dispatch Map</title>
+  <title>Dispatch Map — Demo</title>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <link rel="stylesheet" href="/css/style.css" />
-  <script defer src="https://identity.netlify.com/v1/netlify-identity-widget.js"></script>
   <script defer src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 </head>
 <body>
+  <div style="background: #7a4b00; color: white; text-align: center; padding: 0.4rem; font-size: 0.85rem;">
+    <strong>DEMO MODE</strong> — all JOs, subscribers, and vehicles below are made up. Not connected to the real sheet or Cartrack.
+    <a href="/index.html" style="color: #ffe0a3;">Go to the real app &rarr;</a>
+  </div>
+
   <header class="topbar">
-    <h1>Dispatch Map</h1>
+    <h1>Dispatch Map (Demo)</h1>
     <div class="filters">
       <label>Cluster <select id="filter-cluster"><option value="all">All</option></select></label>
       <label>Municipality <select id="filter-municipality"><option value="all">All</option></select></label>
@@ -39,7 +43,7 @@
       <h2>Barangays by urgency</h2>
       <ul id="barangay-ranking" class="rank-list"></ul>
 
-      <h2>Needs coordinates <a href="/admin/unmatched-barangays.html">(fix &rarr;)</a></h2>
+      <h2>Needs coordinates</h2>
       <ul id="unmatched-list" class="unmatched-list"></ul>
 
       <h2>Dispatch suggestions</h2>
@@ -50,21 +54,17 @@
   </main>
 
   <!--
-    All scripts on this page (including Identity/Leaflet above) use `defer`,
-    not just for perf — it's load-bearing. Deferred scripts run in document
-    order after parsing finishes, right before DOMContentLoaded. Without
-    `defer` here, these would run synchronously as the parser reaches them
-    (i.e. before parsing finishes), which is BEFORE the deferred Identity
-    widget script above runs — so window.netlifyIdentity would still be
-    undefined when app.js calls window.DispatchAuth.init(start), and the
-    app would silently fail to start on every load. Keep every script here
-    deferred, in this relative order (Identity, Leaflet, then app scripts
-    in their dependency order).
+    Same app scripts as public/index.html, in the same order (see that
+    file's comment on why `defer` matters for load order). Only auth.js and
+    api.js are swapped for demo/mock-auth.js and demo/mock-api.js — every
+    other file is the real, unmodified app code, run against fake data.
   -->
   <script defer src="/js/escapeHtml.js"></script>
   <script defer src="/js/config.js"></script>
-  <script defer src="/js/auth.js"></script>
-  <script defer src="/js/api.js"></script>
+  <script defer src="/demo/demo-config.js"></script>
+  <script defer src="/demo/sample-data.js"></script>
+  <script defer src="/demo/mock-auth.js"></script>
+  <script defer src="/demo/mock-api.js"></script>
   <script defer src="/js/map.js"></script>
   <script defer src="/js/haversine.js"></script>
   <script defer src="/js/dispatch.js"></script>
