@@ -17,6 +17,33 @@ the credentials provided couldn't be tested here) — see "Configuring for
 your real Cartrack account" below. Run the Cartrack smoke test yourself
 (from a normal `netlify dev` or after deploying) before trusting Phase 2.
 
+**Want to see it working right now, with no setup at all?** See "Demo mode"
+below — a version of the exact same app running on made-up data, no sheet,
+no Cartrack, no login required.
+
+## Demo mode (no credentials needed)
+
+`public/demo/index.html` is the real map, side panel, filters, and dispatch
+suggestions — same `public/js/app.js`, `vehicles.js`, `dispatch.js`, unchanged
+— just fed fake data (`public/demo/sample-data.js`) instead of the real
+Sheets/Cartrack APIs, and with the Netlify Identity login skipped
+(`public/demo/mock-auth.js`/`mock-api.js` stand in for the real
+`auth.js`/`api.js`, same interface). Fake barangays are real Laguna town
+names with approximate coordinates; subscriber names and phone numbers are
+obviously made up (`555` prefix). A few vehicles drift slightly on each
+refresh to show the "moving" state, and one is deliberately stale (grayed
+out) to show that behavior too.
+
+```bash
+npm install
+npm run dev
+```
+
+Then open `http://localhost:8888/demo/index.html` — no `.env`, no service
+account, no Cartrack credentials, no login. This is purely for previewing
+the UI/UX; it doesn't save barangay pins or run geocoding (those show a
+"demo mode" message instead of doing anything).
+
 ## Stack
 
 - Static HTML/CSS/JS on Netlify (`public/`)

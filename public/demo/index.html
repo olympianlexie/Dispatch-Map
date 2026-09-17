@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dispatch Map — Demo</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <link rel="stylesheet" href="/css/style.css" />
+  <script defer src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+</head>
+<body>
+  <div style="background: #7a4b00; color: white; text-align: center; padding: 0.4rem; font-size: 0.85rem;">
+    <strong>DEMO MODE</strong> — all JOs, subscribers, and vehicles below are made up. Not connected to the real sheet or Cartrack.
+    <a href="/index.html" style="color: #ffe0a3;">Go to the real app &rarr;</a>
+  </div>
+
+  <header class="topbar">
+    <h1>Dispatch Map (Demo)</h1>
+    <div class="filters">
+      <label>Cluster <select id="filter-cluster"><option value="all">All</option></select></label>
+      <label>Municipality <select id="filter-municipality"><option value="all">All</option></select></label>
+      <label>SLA <select id="filter-sla">
+        <option value="all">All</option>
+        <option value="withinSla">Within SLA</option>
+        <option value="nearBreach">Near breach</option>
+        <option value="breached">Breached</option>
+        <option value="unknown">Unknown date</option>
+      </select></label>
+      <label>Assigned <select id="filter-assignment">
+        <option value="all">All</option>
+        <option value="assigned">Assigned</option>
+        <option value="unassigned">Unassigned</option>
+      </select></label>
+      <label><input type="checkbox" id="toggle-jos" checked /> JOs</label>
+      <label><input type="checkbox" id="toggle-vehicles" checked /> Vehicles</label>
+    </div>
+    <span id="last-updated" class="status-text">Loading&hellip;</span>
+  </header>
+
+  <main class="layout">
+    <div id="map"></div>
+    <aside class="side-panel">
+      <h2>Barangays by urgency</h2>
+      <ul id="barangay-ranking" class="rank-list"></ul>
+
+      <h2>Needs coordinates</h2>
+      <ul id="unmatched-list" class="unmatched-list"></ul>
+
+      <h2>Dispatch suggestions</h2>
+      <div id="dispatch-panel">
+        <p class="hint">Click a barangay or a vehicle on the map to see ranked suggestions here.</p>
+      </div>
+    </aside>
+  </main>
+
+  <!--
+    Same app scripts as public/index.html, in the same order (see that
+    file's comment on why `defer` matters for load order). Only auth.js and
+    api.js are swapped for demo/mock-auth.js and demo/mock-api.js — every
+    other file is the real, unmodified app code, run against fake data.
+  -->
+  <script defer src="/js/escapeHtml.js"></script>
+  <script defer src="/js/config.js"></script>
+  <script defer src="/demo/demo-config.js"></script>
+  <script defer src="/demo/sample-data.js"></script>
+  <script defer src="/demo/mock-auth.js"></script>
+  <script defer src="/demo/mock-api.js"></script>
+  <script defer src="/js/map.js"></script>
+  <script defer src="/js/haversine.js"></script>
+  <script defer src="/js/dispatch.js"></script>
+  <script defer src="/js/vehicles.js"></script>
+  <script defer src="/js/app.js"></script>
+</body>
+</html>
