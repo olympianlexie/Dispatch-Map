@@ -1,10 +1,10 @@
 // Central place for everything that depends on facts about the actual
 // Google Sheet (exact column headers, status/type strings, SLA thresholds).
 //
-// None of this has been confirmed against the real MAINLINE tab yet — these
-// are best-guess defaults so Phase 1 can be built and tested end-to-end.
-// Edit this file (not the function code) once you confirm the real values;
-// everything else reads from here.
+// Column names below are CONFIRMED against the real MAINLINE tab (sheet
+// "SLI New Database"). SLA thresholds are still placeholders — see the
+// `sla` block below, that's a business policy number only the project
+// owner can confirm.
 
 module.exports = {
   sheet: {
@@ -13,36 +13,53 @@ module.exports = {
     vehiclesTab: 'VEHICLES',
   },
 
-  // Logical field -> exact header text in the MAINLINE tab (case-sensitive,
-  // must match exactly what's in row 1 of the sheet).
-  // TODO: confirm against real header row.
+  // Logical field -> exact header text in the MAINLINE tab. Confirmed
+  // against the real sheet.
   columns: {
-    joNumber: 'JO Number',
-    joType: 'JO Type',
-    status: 'Status',
-    dateReceived: 'Date Received',
-    barangay: 'Barangay',
-    municipality: 'Municipality',
-    cluster: 'Cluster',
-    assignedTeam: 'Assigned Technician',
-    subscriberName: 'Subscriber Name',
-    contactNumber: 'Contact Number',
+    joNumber: 'JO NUMBER',
+    dateReceived: 'DATE CREATED',
+    ageingDays: 'AGEING DAYS', // the sheet already computes this — use it directly instead of re-deriving from dateReceived
+    barangay: 'BRGY',
+    municipality: 'MUNICIPALITY',
+    cluster: 'CLUSTER',
+    assignedTeam: 'Assigned Crew in JOWEB',
+    subscriberName: 'SUBSCRIBER NAME',
+    contactNumber: 'CONTACT DETAILS',
+    status: 'STATUS ON JOWEB',
+    statusCategory: 'STATUS CATEGORY',
+    // Despite the name, this is the customer/product segment (CONSUMER,
+    // SME (SMALL MEDIUM ENTERPRISE), BIDA, S2S, APPLICATION FOR MAINLINE/
+    // EXTENSION IPTV, WIFI 6 TECH ASSISTANCE — confirmed from real data),
+    // not an installation-vs-repair flag. MAINLINE appears to track
+    // installation-type work only, so this isn't used to filter "is this
+    // an installation" — see openInstallation.excludeJoTypes below for the
+    // one case that's genuinely ambiguous.
+    joType: 'JO TYPE',
   },
 
-  // Which JO Type / Status values count as an "open installation" for the
-  // map. Comparisons are case-insensitive and trimmed.
-  // TODO: confirm exact values used in the sheet.
+  // What counts as "open" (still needs dispatching) rather than finished.
+  // Confirmed real STATUS ON JOWEB values: ON GOING, FOR RELEASING, CLOSE,
+  // CANCELLED. Deliberately a BLACKLIST of "done" statuses rather than a
+  // whitelist of "open" ones — an unrecognized future status value should
+  // surface on the map (dispatcher can judge it) rather than silently
+  // vanish because it wasn't in a whitelist.
   openInstallation: {
-    joTypes: ['Installation', 'New Installation'],
-    statuses: ['Open', 'Ongoing', 'For Dispatch', 'Pending', 'In Progress'],
+    closedStatuses: ['CLOSE', 'CANCELLED'],
+    // TODO: confirm whether "WIFI 6 TECH ASSISTANCE" (a JO TYPE value)
+    // should count as an installation for this map, or is post-install
+    // support that doesn't belong here. Add its exact string here to
+    // exclude it once confirmed.
+    excludeJoTypes: [],
   },
 
-  // SLA bucket thresholds, in whole days since dateReceived.
+  // SLA bucket thresholds, in whole days (from the sheet's own AGEING DAYS
+  // column, falling back to today - DATE CREATED if that's ever blank).
   // ageDays >= breachDays        -> "breached"
   // ageDays >= nearBreachDays    -> "nearBreach"
   // otherwise                    -> "withinSla"
-  // TODO: confirm real thresholds (and whether they should vary by cluster
-  // or JO type — if so, this can become a lookup keyed on those).
+  // TODO: confirm real thresholds against Converge's actual installation
+  // SLA (and whether they should vary by cluster or JO type — if so, this
+  // can become a lookup keyed on those).
   sla: {
     nearBreachDays: 3,
     breachDays: 5,
@@ -64,8 +81,7 @@ module.exports = {
 
   // The four Laguna clusters this MSP organizes municipalities into.
   // Used only for validating/labeling — the actual cluster per JO always
-  // comes from the sheet's own Cluster column.
-  // TODO: confirm municipality -> cluster grouping if you want server-side
-  // validation of the sheet's Cluster column.
-  clusters: [],
+  // comes from the sheet's own CLUSTER column (confirmed real values:
+  // CLUSTER 1, CLUSTER 2, CLUSTER 3, CLUSTER 4).
+  clusters: ['CLUSTER 1', 'CLUSTER 2', 'CLUSTER 3', 'CLUSTER 4'],
 };

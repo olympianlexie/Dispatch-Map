@@ -22,11 +22,29 @@ const CACHE_TTL_MS = 20_000;
 let cache = { data: null, expiresAt: 0 };
 
 function isOpenInstallation(row) {
-  const joType = (row[config.columns.joType] || '').trim().toLowerCase();
-  const status = (row[config.columns.status] || '').trim().toLowerCase();
-  const wantedTypes = config.openInstallation.joTypes.map((t) => t.toLowerCase());
-  const wantedStatuses = config.openInstallation.statuses.map((s) => s.toLowerCase());
-  return wantedTypes.includes(joType) && wantedStatuses.includes(status);
+  const status = (row[config.columns.status] || '').trim().toUpperCase();
+  const joType = (row[config.columns.joType] || '').trim().toUpperCase();
+  const closedStatuses = config.openInstallation.closedStatuses.map((s) => s.toUpperCase());
+  const excludedTypes = config.openInstallation.excludeJoTypes.map((t) => t.toUpperCase());
+  if (closedStatuses.includes(status)) return false;
+  if (excludedTypes.includes(joType)) return false;
+  return true;
+}
+
+// "Assigned Crew in JOWEB" uses a bare "-" to mean "not yet assigned" —
+// treat that the same as an empty string everywhere else does.
+function cleanAssignedTeam(raw) {
+  const trimmed = (raw || '').trim();
+  return /^-+$/.test(trimmed) ? '' : trimmed;
+}
+
+function ageDaysFor(row) {
+  const fromSheet = parseInt(row[config.columns.ageingDays], 10);
+  if (!Number.isNaN(fromSheet)) return fromSheet;
+
+  // Fallback only if the sheet's own AGEING DAYS is ever blank.
+  const receivedDate = parseSheetDate(row[config.columns.dateReceived]);
+  return receivedDate ? Math.floor((Date.now() - receivedDate.getTime()) / 86_400_000) : null;
 }
 
 function slaBucketFor(ageDays) {
@@ -67,8 +85,7 @@ async function buildJos() {
     const key = barangayKey(rawBarangay, rawMunicipality);
     const coords = coordsByKey.get(key);
 
-    const receivedDate = parseSheetDate(row[config.columns.dateReceived]);
-    const ageDays = receivedDate ? Math.floor((Date.now() - receivedDate.getTime()) / 86_400_000) : null;
+    const ageDays = ageDaysFor(row);
 
     if (!coords) {
       const existing = unmatchedCounts.get(key) || {
@@ -90,7 +107,7 @@ async function buildJos() {
       barangay: normalizeName(rawBarangay) || rawBarangay,
       municipality: normalizeName(rawMunicipality) || rawMunicipality,
       cluster: row[config.columns.cluster] || '',
-      assignedTeam: row[config.columns.assignedTeam] || '',
+      assignedTeam: cleanAssignedTeam(row[config.columns.assignedTeam]),
       // Only what dispatchers need to coordinate on-site — no full address,
       // no account/billing details even if MAINLINE has them.
       subscriberName: row[config.columns.subscriberName] || '',
@@ -107,6 +124,13 @@ async function buildJos() {
     unmatchedBarangays: Array.from(unmatchedCounts.values()).sort((a, b) => b.count - a.count),
   };
 }
+
+// Exported for unit testing (test/sheetJos.test.js) alongside the actual
+// Netlify function entry point below.
+module.exports.isOpenInstallation = isOpenInstallation;
+module.exports.cleanAssignedTeam = cleanAssignedTeam;
+module.exports.ageDaysFor = ageDaysFor;
+module.exports.slaBucketFor = slaBucketFor;
 
 exports.handler = async (event, context) => {
   const user = requireUser(context);

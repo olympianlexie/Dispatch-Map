@@ -4,14 +4,18 @@ Live map for Olympian ICT dispatchers: open installation JOs by barangay,
 plus live Cartrack vehicle locations, so dispatchers can decide which team
 goes where.
 
-**Status: Phase 1 and Phase 2 built, pending real-data verification.** The
-JO-by-barangay map, filters, side panel, and barangay-coordinate tooling
-(geocoding + click-to-pin) are implemented against **placeholder** sheet
-column names, status/JO-type values, and SLA thresholds — see "Configuring
-for your real sheet" below. The live vehicle layer is implemented against
-**best-guess Cartrack field names** (their docs site wasn't reachable while
-building this) — see "Configuring for your real Cartrack account" below.
-Neither phase has been run against live credentials yet.
+**Status: Phase 1 column mapping confirmed against the real sheet; Phase 2
+still needs a live Cartrack test.** `netlify/functions/lib/config.js`'s
+column names, status values, and open/closed logic are now confirmed
+against the real MAINLINE tab (see "Configuring for your real sheet"
+below) — only the SLA day thresholds are still a placeholder, since that's
+a business policy number only the project owner can set. The live vehicle
+layer is still implemented against **best-guess Cartrack field names**
+(their docs site wasn't reachable while building this, and this sandboxed
+dev environment's network policy blocks every Cartrack hostname tried, so
+the credentials provided couldn't be tested here) — see "Configuring for
+your real Cartrack account" below. Run the Cartrack smoke test yourself
+(from a normal `netlify dev` or after deploying) before trusting Phase 2.
 
 ## Stack
 
@@ -61,16 +65,44 @@ Cartrack sends back for this account.
 ## Configuring for your real sheet
 
 Everything that depends on facts about the actual MAINLINE tab — exact
-column headers, which JO Type/Status values mean "open installation", and
-the SLA bucket thresholds — lives in **one file**:
-`netlify/functions/lib/config.js`. It ships with placeholder values (e.g.
-`joType: 'JO Type'`, statuses like `'Open'`/`'Ongoing'`, SLA breach at 5
-days). Edit that file to match your sheet; nothing else needs to change.
-Each field is marked `TODO` where it needs confirming.
+column headers, which statuses mean "open", and the SLA bucket thresholds —
+lives in **one file**: `netlify/functions/lib/config.js`.
+
+**Confirmed against the real "SLI New Database" sheet's MAINLINE tab:**
+
+- Column names (`JO NUMBER`, `DATE CREATED`, `AGEING DAYS`, `BRGY`,
+  `MUNICIPALITY`, `CLUSTER`, `Assigned Crew in JOWEB`, `SUBSCRIBER NAME`,
+  `CONTACT DETAILS`, `STATUS ON JOWEB`, `STATUS CATEGORY`, `JO TYPE`).
+- `AGEING DAYS` is a column the sheet already computes — the app reads it
+  directly instead of re-deriving age from `DATE CREATED`, only falling
+  back to date math if that column is ever blank.
+- "Open" is a **blacklist** of `STATUS ON JOWEB` values that mean done
+  (`CLOSE`, `CANCELLED`) rather than a whitelist of open ones — confirmed
+  real values are `ON GOING`, `FOR RELEASING`, `CLOSE`, `CANCELLED`. A
+  future status value nobody's seen yet still shows up as open by default
+  (a dispatcher can judge it) instead of silently vanishing because a
+  whitelist didn't include it.
+- `JO TYPE` turned out to be the **customer/product segment** (`CONSUMER`,
+  `SME (SMALL MEDIUM ENTERPRISE)`, `BIDA`, `S2S`, `APPLICATION FOR
+  MAINLINE/EXTENSION IPTV`, `WIFI 6 TECH ASSISTANCE`), not an
+  installation-vs-repair flag — MAINLINE appears to track installation-type
+  work exclusively, so every row is in scope by default.
+  **One open question:** does `WIFI 6 TECH ASSISTANCE` belong on this map,
+  or is it post-install support that should be excluded? Add its exact
+  string to `openInstallation.excludeJoTypes` in `config.js` if the latter.
+- `"Assigned Crew in JOWEB"` uses a bare `-` to mean "not yet assigned" —
+  the app normalizes that to an empty string so the Assigned/Unassigned
+  filter works correctly.
+- Real `CLUSTER` values are `CLUSTER 1`–`CLUSTER 4`.
+
+**Still a placeholder — needs your input:** the SLA `nearBreachDays`/
+`breachDays` thresholds in `config.js`'s `sla` block (currently 3/5 days).
+That's Converge's actual installation SLA policy, which isn't something
+derivable from sample data.
 
 ### Required sheet tabs
 
-- **MAINLINE** (existing) — must have columns matching
+- **MAINLINE** (existing) — columns confirmed above, matching
   `netlify/functions/lib/config.js`'s `columns` mapping.
 - **BARANGAY_COORDS** (new tab you create) — columns in this exact order:
   `Municipality, Barangay, Latitude, Longitude, Source, Verified, Confidence`.
@@ -157,6 +189,15 @@ substitute for checking the real response.
 Once you have credentials:
 
 1. Run the Cartrack smoke test (see above) and look at the raw vehicle list.
+   Note: this couldn't be tested from the sandboxed environment this app
+   was built in — its network policy blocked every Cartrack hostname tried
+   (`developer.cartrack.com`, `fleetapi-na.cartrack.com`,
+   `fleetweb-ph.cartrack.com`, `fleetapi-ph.cartrack.com`) with a 403 at
+   the egress proxy, not a Cartrack-side auth failure. Run this smoke test
+   from `netlify dev` on your own machine or after deploying, where that
+   restriction doesn't apply. Confirm the exact `CARTRACK_BASE_URL` for
+   your account/region too — the two `fleet*-ph`/`fleet*-na` guesses above
+   were never actually reachable, so neither is confirmed.
 2. Load the map and check the Network tab for `/api/cartrack-vehicles` — its
    response includes a `rawSample` field (the first unprocessed vehicle
    object from `/rest/vehicles/status`) specifically so you can compare it
@@ -238,12 +279,14 @@ its centroid, not the actual job site, so treat the numbers as relative
 
 ## Roadmap
 
-1. **Phase 1 — Open installation JOs by barangay** ✅ built, needs
-   verification against the real sheet (see "Configuring for your real
-   sheet" above)
-2. **Phase 2 — Live Cartrack vehicles** ✅ built, needs verification against
-   a real Cartrack account (see "Configuring for your real Cartrack
-   account" above) and the VEHICLES tab needs creating
+1. **Phase 1 — Open installation JOs by barangay** ✅ built, column mapping
+   confirmed against the real sheet — only the SLA day thresholds and the
+   `WIFI 6 TECH ASSISTANCE` scoping question remain (see "Configuring for
+   your real sheet" above)
+2. **Phase 2 — Live Cartrack vehicles** ✅ built, still needs a live
+   Cartrack smoke test (blocked in this sandboxed dev environment — see
+   "Configuring for your real Cartrack account" above) and the VEHICLES tab
+   needs creating
 3. **Phase 3 — Dispatch assistance** ✅ built (see above) — depends on
    Phase 1/2 data, so its accuracy inherits whatever is still unverified
    there
